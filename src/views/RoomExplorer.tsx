@@ -991,7 +991,7 @@ export const RoomExplorer: React.FC = () => {
                 <div>
                   <span className="text-[9px] font-black text-blue-500 dark:text-blue-400 uppercase tracking-wider mb-1.5 block leading-none">รหัสนักศึกษา</span>
                   <a
-                    href={`/?id=${selectedSeat.student_id}`}
+                    href={`/?id=${encodeURIComponent(selectedSeat.student_id)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="text-lg font-mono font-black text-blue-900 dark:text-blue-300 hover:text-blue-700 dark:hover:text-blue-400 hover:underline underline-offset-4 flex items-center justify-center gap-1.5"

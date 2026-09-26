@@ -30,3 +30,19 @@ export function calendarFeedUrl(studentId: string): string {
 export function calendarSubscribeUrl(studentId: string): string {
   return calendarFeedUrl(studentId).replace(/^https?:/, 'webcal:');
 }
+
+/**
+ * Returns url if it is safe to use as a link target: http(s) or a
+ * site-relative path. Script, data and protocol-relative URLs coming from API
+ * data are dropped.
+ */
+export function safeExternalUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  if (url.startsWith('/') && !url.startsWith('//') && !url.startsWith('/\\')) return url;
+  try {
+    const { protocol } = new URL(url);
+    return protocol === 'http:' || protocol === 'https:' ? url : undefined;
+  } catch {
+    return undefined;
+  }
+}

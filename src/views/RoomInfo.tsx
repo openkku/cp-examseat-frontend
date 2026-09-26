@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/Input';
 import { Search, MapPin, Building, Info, ExternalLink, School } from '@/components/icons';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useLocationHash } from '@/hooks/useLocationHash';
-import { apiUrl, assetUrl } from '@/lib/api';
+import { apiUrl, assetUrl, safeExternalUrl } from '@/lib/api';
 import { getRoomContent } from '@/lib/roomContent';
 
 const RoomLocationMap = dynamic(() => import('@/components/room/RoomLocationMap'), {
@@ -74,6 +74,7 @@ export const RoomInfo = () => {
           ...room,
           i_layout: assetUrl(room.i_layout),
           i_images: room.i_images?.map((url) => assetUrl(url)),
+          i_map: safeExternalUrl(room.i_map),
         }])));
       } catch (err: unknown) {
         setError((err instanceof Error && err.message) || "Error fetching data");

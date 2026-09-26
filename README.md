@@ -59,6 +59,17 @@ Notes on the migration from the Vite SPA:
 - Leaflet needs `window`, so the room map is loaded with `next/dynamic` and `ssr: false`.
 - URL updates use the native History API, which Next.js syncs into `useSearchParams`.
 
+## Security
+
+- The proxy only forwards `/api/*` and `/room/image/*`, and refuses paths
+  whose encoded dot segments (`/api/%2e%2e/...`) resolve elsewhere.
+- Pages send `nosniff`, `X-Frame-Options: DENY`, a restrictive
+  `Permissions-Policy` and a CSP with `frame-ancestors 'none'`, `object-src 'none'`.
+- Links built from API data go through `safeExternalUrl` (http(s) or
+  site-relative only), and API text is always rendered as text.
+- `src/__tests__/security.test.tsx` covers the above; CI also runs
+  `npm audit` on production dependencies.
+
 ## Getting started
 
 ```bash
