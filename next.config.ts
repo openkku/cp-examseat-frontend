@@ -14,6 +14,12 @@ const nextConfig: NextConfig = {
   // Self-contained server bundle for the Docker image (node server.js).
   output: 'standalone',
   poweredByHeader: false,
+  experimental: {
+    // src/proxy.ts buffers request bodies; admin imports go through it and
+    // must not be truncated. Keep this above the backend's MAX_UPLOAD_MB
+    // (default 20) so the backend's 413 is what limits uploads.
+    proxyClientMaxBodySize: '25mb',
+  },
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },

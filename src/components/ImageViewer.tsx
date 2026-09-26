@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useEffectEvent } from "react";
 import {
   TransformWrapper,
   TransformComponent,
@@ -54,19 +54,7 @@ export const ImageViewer: React.FC<ProImageViewerProps> = ({
     return () => document.removeEventListener("fullscreenchange", handleChange);
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (imageList.length > 1) {
-        if (e.key === 'ArrowRight') handleNext();
-        if (e.key === 'ArrowLeft') handlePrev();
-      }
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, imageList.length]);
-
-const handleNext = () => {
+  const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % imageList.length);
     transformRef.current?.resetTransform();
   };
@@ -75,6 +63,21 @@ const handleNext = () => {
     setCurrentIndex((prev) => (prev - 1 + imageList.length) % imageList.length);
     transformRef.current?.resetTransform();
   };
+
+  // Keyboard navigation always sees the latest image list and handlers.
+  const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
+    if (imageList.length > 1) {
+      if (e.key === 'ArrowRight') handleNext();
+      if (e.key === 'ArrowLeft') handlePrev();
+    }
+    if (e.key === 'Escape') onClose();
+  });
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => onKeyDown(e);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handlePointerDown = (e: React.PointerEvent) => {
     setDragStart({ x: e.clientX, y: e.clientY });
@@ -172,6 +175,7 @@ const handleNext = () => {
               <img
                 key={currentImage}
                 src={currentImage}
+                alt={imageList.length > 1 ? `รูปที่ ${currentIndex + 1} จาก ${imageList.length}` : 'ภาพห้องสอบ'}
                 onLoad={() => setLoadedImages(prev => ({ ...prev, [currentImage]: true }))}
                 onError={() => setLoadedImages(prev => ({ ...prev, [currentImage]: true }))}
                 style={{

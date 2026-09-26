@@ -19,6 +19,10 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f8fbf8' },
+    { media: '(prefers-color-scheme: dark)', color: '#09150f' },
+  ],
 };
 
 // Applies the saved (or system) color scheme before first paint to avoid a flash.

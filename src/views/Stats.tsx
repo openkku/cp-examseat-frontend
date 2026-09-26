@@ -7,10 +7,9 @@ import { useAnimatedNumber } from '@/hooks/useAnimatedNumber';
 
 // UI Primitives & Icons
 import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
 import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { BarChart3, School, User, ArrowUp, Info, Calendar } from '@/components/icons';
+import { BarChart3, School, User, Calendar } from '@/components/icons';
 
 interface TimeslotStat {
   time: string;
@@ -782,7 +781,7 @@ export const StatsPage: React.FC = () => {
 };
 
 // Stacked Bar Chart Component (Tailwind-native canvas layout with spring scaling)
-const StackedBarChart = ({ data, selectedId, onSelect, yearColors }: { data: DashboardResponse, selectedId: string, onSelect: (id: string) => void, yearColors: Record<string, string> }) => {
+const StackedBarChart = ({ data, onSelect, yearColors }: { data: DashboardResponse, selectedId: string, onSelect: (id: string) => void, yearColors: Record<string, string> }) => {
 
   const rounds = useMemo(() => {
     return data.options.filter(opt => opt.id !== 'global').map(opt => {

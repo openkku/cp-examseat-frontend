@@ -50,3 +50,59 @@ describe('findRoomConfig', () => {
     expect(findRoomConfig('CP.9127', null as unknown as RoomConfigMap)).toBeNull();
   });
 });
+
+describe('getRoomContent', () => {
+  it('prefers backend metadata over the built-in list', async () => {
+    const { getRoomContent } = await import('@/lib/roomContent');
+    const fromApi = getRoomContent('CP.9127', { title: 'API title', lat: 1, lng: 2 });
+    expect(fromApi).toMatchObject({ title: 'API title', lat: 1, lng: 2 });
+    expect(fromApi.description).toContain('วิทยวิภาส'); // built-in fills the gap
+  });
+
+  it('ignores an incomplete backend location', async () => {
+    const { getRoomContent } = await import('@/lib/roomContent');
+    const content = getRoomContent('cp.9127', { lat: 5 });
+    expect(content.lat).toBeCloseTo(16.4756, 3);
+  });
+
+  it('falls back to a generic title for unknown rooms', async () => {
+    const { getRoomContent } = await import('@/lib/roomContent');
+    const content = getRoomContent('XX.1');
+    expect(content.title).toBe('ห้องสอบ XX.1');
+    expect(content.lat).toBeUndefined();
+  });
+});
+
+describe('exam timing helpers', () => {
+  it('reads the start time as Thailand time', async () => {
+    const { examStartTime } = await import('@/lib/utils');
+    expect(examStartTime('2026-09-01', '08.30-11.30')?.toISOString()).toBe('2026-09-01T01:30:00.000Z');
+    expect(examStartTime('2026-09-01', '13:00 - 16:00')?.toISOString()).toBe('2026-09-01T06:00:00.000Z');
+    expect(examStartTime('2026-09-01', '')).toBeNull();
+    expect(examStartTime('1 ก.ย. 69', '08.30')).toBeNull();
+  });
+
+  it('formats a countdown in Thai', async () => {
+    const { formatCountdown } = await import('@/lib/utils');
+    const min = 60_000;
+    expect(formatCountdown(-1)).toBe('กำลังสอบ');
+    expect(formatCountdown(5 * min)).toBe('อีก 5 นาที');
+    expect(formatCountdown(90 * min)).toBe('อีก 1 ชม. 30 นาที');
+    expect(formatCountdown(120 * min)).toBe('อีก 2 ชม.');
+    expect(formatCountdown((2 * 1440 + 3 * 60) * min)).toBe('อีก 2 วัน 3 ชม.');
+    expect(formatCountdown(1440 * min)).toBe('อีก 1 วัน');
+  });
+
+  it('finds the next exam that has not ended', async () => {
+    const { findNextExam } = await import('@/lib/utils');
+    const now = Date.UTC(2030, 0, 10, 3, 0); // 10 Jan 2030, 10:00 in Bangkok
+    const exams = [
+      { id: 'later', date: '2030-01-12', time: '08.30-11.30' },
+      { id: 'soon', date: '2030-01-11', time: '13.00-16.00' },
+      { id: 'no-time', date: '2030-01-10', time: '' },
+      { id: 'long-past', date: '2020-01-01', time: '08.30-11.30' },
+    ];
+    expect(findNextExam(exams, now)?.id).toBe('soon');
+    expect(findNextExam([], now)).toBeNull();
+  });
+});

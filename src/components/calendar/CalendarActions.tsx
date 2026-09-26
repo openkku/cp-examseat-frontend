@@ -131,13 +131,15 @@ export const CalendarActions: React.FC<CalendarActionsProps> = ({ studentId }) =
       </div>
 
       {/* Interactive Helper Modal */}
+      {isHelperOpen && (
       <CalendarHelper
-        isOpen={isHelperOpen}
+        isOpen
         onClose={() => setIsHelperOpen(false)}
         studentId={studentId}
         onSubscribe={handleSubscribeCalendar}
         onDownload={handleDownloadICal}
       />
+      )}
     </div>
   );
 };

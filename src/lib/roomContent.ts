@@ -1,5 +1,15 @@
-// Local coordinates & descriptions of exam rooms, keyed by room ID.
-export const ROOM_CONTENT: Record<string, { title?: string; description?: string; note?: string; lat?: number; lng?: number }> = {
+export interface RoomContent {
+  title?: string;
+  description?: string;
+  note?: string;
+  lat?: number;
+  lng?: number;
+}
+
+// Built-in coordinates & descriptions of exam rooms, keyed by room ID. The
+// backend can override them per room with title/description/lat/lng in
+// room/metadata.json; these remain the fallback.
+export const ROOM_CONTENT: Record<string, RoomContent> = {
   "CP.9127": {
     title: "ห้องสอบ CP.9127",
     description: "ชั้น 1 อาคารวิทยวิภาส วิทยาลัยการคอมพิวเตอร์",
@@ -80,14 +90,23 @@ export const ROOM_CONTENT: Record<string, { title?: string; description?: string
   },
 };
 
-export const getRoomContent = (roomId: string) => {
-  const normalizedId = roomId.trim().toUpperCase();
-  const safeDictionary = Object.fromEntries(
-    Object.entries(ROOM_CONTENT).map(([k, v]) => [k.trim().toUpperCase(), v])
-  );
+const BUILT_IN = Object.fromEntries(
+  Object.entries(ROOM_CONTENT).map(([k, v]) => [k.trim().toUpperCase(), v])
+);
 
-  return safeDictionary[normalizedId] || {
+/** Display details of a room: backend metadata first, then the built-in list, then a generic title. */
+export const getRoomContent = (roomId: string, fromApi?: RoomContent): RoomContent => {
+  const builtIn = BUILT_IN[roomId.trim().toUpperCase()];
+  const fallback: RoomContent = builtIn ?? {
     title: `ห้องสอบ ${roomId}`,
-    description: "College of Computing มหาวิทยาลัยขอนแก่น"
+    description: "College of Computing มหาวิทยาลัยขอนแก่น",
+  };
+  const hasApiLocation = typeof fromApi?.lat === 'number' && typeof fromApi?.lng === 'number';
+  return {
+    ...fallback,
+    title: fromApi?.title || fallback.title,
+    description: fromApi?.description || fallback.description,
+    lat: hasApiLocation ? fromApi!.lat : fallback.lat,
+    lng: hasApiLocation ? fromApi!.lng : fallback.lng,
   };
 };
