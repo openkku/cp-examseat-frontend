@@ -1,0 +1,35 @@
+# Full stack: this frontend plus the Go backend, built from a sibling checkout
+# of openkku/cp-examseat-backend (override with BACKEND_CONTEXT).
+services:
+  frontend:
+    build: ./
+    container_name: cp_examseat_frontend
+    ports:
+      - 127.0.0.1:3000:3000
+    restart: unless-stopped
+    environment:
+      - BACKEND_URL=http://backend:8080
+    depends_on:
+      - backend
+    networks:
+      - cpkku-network
+
+  backend:
+    build: ${BACKEND_CONTEXT:-../cp-examseat-backend}
+    container_name: cp_examseat_backend
+    restart: unless-stopped
+    volumes:
+      - ${DATA_DIR:-../cp-examseat-backend/data}:/app/data:z
+    #environment:
+      # - IMAGE_BASE_URL=
+    networks:
+      - cpkku-network
+
+networks:
+  cpkku-network:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: d000::/112
+    driver_opts:
+      com.docker.network.bridge.name: cpkku-network
