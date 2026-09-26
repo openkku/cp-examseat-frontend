@@ -10,6 +10,9 @@ import { ExamCard } from '@/components/exam/ExamCard';
 import { ScrollToTopButton } from '@/components/ScrollToTopButton';
 import { SearchHistory, type SearchHistoryItem } from '@/components/search/SearchHistory';
 import { StudentProfileCard } from '@/components/search/StudentProfileCard';
+import { NextExamBanner } from '@/components/search/NextExamBanner';
+import { ShareButton } from '@/components/search/ShareButton';
+import { useSlashFocus } from '@/hooks/useSlashFocus';
 import { useAnimatedNumber } from '@/hooks/useAnimatedNumber';
 import { hasExamPassed } from '@/lib/utils';
 
@@ -122,6 +125,8 @@ export const StudentSearch = () => {
   const historyRef = useRef<HTMLDivElement>(null);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const studentIdInputRef = useRef<HTMLInputElement>(null);
+  useSlashFocus(studentIdInputRef);
   const router = useRouter();
 
   // History management helpers
@@ -171,7 +176,8 @@ export const StudentSearch = () => {
         setBranch('');
         return;
       }
-      if (!res.ok) throw new Error("Failed to fetch data.");
+      if (res.status === 429) throw new Error("มีการค้นหาถี่เกินไป กรุณารอสักครู่แล้วลองใหม่อีกครั้ง");
+      if (!res.ok) throw new Error("ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
 
       const rawData: ExamResult[] = await res.json();
       setResults(rawData);
@@ -366,7 +372,11 @@ export const StudentSearch = () => {
             <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 relative">
               <div className="w-full md:flex-1 relative">
                 <input
+                  ref={studentIdInputRef}
                   type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  title="กด / เพื่อพิมพ์รหัสนักศึกษา"
                   placeholder="653380123-4"
                   value={studentId}
                   onChange={handleInput}
@@ -421,9 +431,12 @@ export const StudentSearch = () => {
         <div className="w-full space-y-6">
           {results !== null && results.length > 0 && (
             <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-1 animate-in fade-in duration-300">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                ตารางสอบของคุณ ({processedResults?.length || 0} รายการ)
-              </span>
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                  ตารางสอบของคุณ ({processedResults?.length || 0} รายการ)
+                </span>
+                <ShareButton title={`ตารางสอบ ${studentId}`} />
+              </div>
               <label className="flex items-center gap-2.5 cursor-pointer select-none text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
                 <input
                   type="checkbox"
@@ -435,6 +448,8 @@ export const StudentSearch = () => {
               </label>
             </div>
           )}
+
+          {results !== null && results.length > 0 && <NextExamBanner exams={results} />}
 
           {loading && <div className="space-y-4" aria-label="กำลังค้นหาที่นั่งสอบ"><div className="h-52 rounded-2xl shimmer" /><div className="h-52 rounded-2xl shimmer" /></div>}
 

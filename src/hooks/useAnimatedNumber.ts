@@ -1,38 +1,31 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
+/** Tweens from the currently shown value to target over duration ms (easeOutQuad). */
 export function useAnimatedNumber(target: number, duration = 800): number {
   const [current, setCurrent] = useState(0);
+  const shown = useRef(0);
 
   useEffect(() => {
-    let startTimestamp: number | null = null;
-    const startValue = current;
+    const startValue = shown.current;
     const change = target - startValue;
-
     if (change === 0) return;
 
+    let startTimestamp: number | null = null;
     let animationFrameId: number;
 
     const step = (timestamp: number) => {
       if (!startTimestamp) startTimestamp = timestamp;
       const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      
-      // Easing function (easeOutQuad)
       const easedProgress = progress * (2 - progress);
-      
-      setCurrent(Math.floor(startValue + change * easedProgress));
+      const value = progress < 1 ? Math.floor(startValue + change * easedProgress) : target;
 
-      if (progress < 1) {
-        animationFrameId = requestAnimationFrame(step);
-      } else {
-        setCurrent(target);
-      }
+      shown.current = value;
+      setCurrent(value);
+      if (progress < 1) animationFrameId = requestAnimationFrame(step);
     };
 
     animationFrameId = requestAnimationFrame(step);
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
+    return () => cancelAnimationFrame(animationFrameId);
   }, [target, duration]);
 
   return current;

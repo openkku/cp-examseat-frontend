@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useLayoutEffect, useMemo } from 'react';
+import React, { useEffect, useEffectEvent, useRef, useLayoutEffect, useMemo } from 'react';
 import type { RoomConfig, LayoutItem, ExamResult } from '@/types';
-import { parseSeat, formatBranch } from '@/lib/utils';
+import { parseSeat } from '@/lib/utils';
 import { SEAT_PALETTE } from '@/lib/constants';
-import { Plus, Minus, Maximize2, Info } from '@/components/icons';
+import { Maximize2, Info } from '@/components/icons';
 import type { SeatDisplayPrefs, SeatField } from '@/hooks/useExplorerPrefs';
 
 function resolveField(exam: ExamResult, field: SeatField): string {
@@ -47,7 +47,6 @@ export const SeatMap: React.FC<Props> = ({ config, targetSeat, occupied = {}, on
   
   const target = targetSeat ? parseSeat(targetSeat) : { char: '', num: -1 };
   const globalCounters: Record<string, number> = {};
-  const [zoomLevel, setZoomLevel] = useState(1);
   
   // Transform & Interaction State
   const transform = useRef({ x: 0, y: 0, k: 1 });
@@ -101,7 +100,6 @@ export const SeatMap: React.FC<Props> = ({ config, targetSeat, occupied = {}, on
         transform.current.k = newK;
         
         updateTransform();
-        setZoomLevel(newK);
     };
 
     container.addEventListener('wheel', onWheel, { passive: false });
@@ -171,7 +169,6 @@ export const SeatMap: React.FC<Props> = ({ config, targetSeat, occupied = {}, on
             transform.current.k = newK;
 
             updateTransform();
-            setZoomLevel(newK);
         }
         lastTouchDistance.current = newDist;
     }
@@ -206,10 +203,11 @@ export const SeatMap: React.FC<Props> = ({ config, targetSeat, occupied = {}, on
         updateTransform();
         setTimeout(() => { if (contentRef.current) contentRef.current.style.transition = ''; }, 500);
     }
-    setZoomLevel(1);
   };
 
-  useLayoutEffect(() => { if (targetSeat) setTimeout(() => centerTarget(true), 50); }, [targetSeat]);
+  // Re-center only when the target seat changes, using the latest layout.
+  const recenter = useEffectEvent(() => centerTarget(true));
+  useLayoutEffect(() => { if (targetSeat) setTimeout(recenter, 50); }, [targetSeat]);
 
   // --- 5. RENDER HELPER ---
   const renderItem = (item: LayoutItem, colIndex: number, itemIndex: number) => {
@@ -360,11 +358,11 @@ export const SeatMap: React.FC<Props> = ({ config, targetSeat, occupied = {}, on
 
       {/* CONTROLS */}
       <div className="absolute bottom-20 md:bottom-6 right-6 flex flex-col gap-2 z-10">
-        <button onClick={() => { transform.current.k = Math.min(transform.current.k + 0.5, 4); updateTransform(); setZoomLevel(transform.current.k); }} className="w-11 h-11 bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 rounded-full shadow-lg text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center text-xl active:bg-slate-100 dark:active:bg-slate-700 cursor-pointer transition-all active:scale-95">+</button>
+        <button onClick={() => { transform.current.k = Math.min(transform.current.k + 0.5, 4); updateTransform(); }} className="w-11 h-11 bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 rounded-full shadow-lg text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center text-xl active:bg-slate-100 dark:active:bg-slate-700 cursor-pointer transition-all active:scale-95">+</button>
         <button onClick={() => centerTarget(true)} className="w-11 h-11 bg-indigo-600 border border-indigo-700 rounded-full shadow-lg text-white font-bold hover:bg-indigo-700 flex items-center justify-center active:bg-indigo-800 cursor-pointer transition-all active:scale-95">
             <Maximize2 className="h-4.5 w-4.5" />
         </button>
-        <button onClick={() => { transform.current.k = Math.max(transform.current.k - 0.5, 0.2); updateTransform(); setZoomLevel(transform.current.k); }} className="w-11 h-11 bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 rounded-full shadow-lg text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center text-xl active:bg-slate-100 dark:active:bg-slate-700 cursor-pointer transition-all active:scale-95">-</button>
+        <button onClick={() => { transform.current.k = Math.max(transform.current.k - 0.5, 0.2); updateTransform(); }} className="w-11 h-11 bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 rounded-full shadow-lg text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center text-xl active:bg-slate-100 dark:active:bg-slate-700 cursor-pointer transition-all active:scale-95">-</button>
       </div>
       
       {/* LEGEND (Floating desktop legend) */}

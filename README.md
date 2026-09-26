@@ -35,13 +35,34 @@ To call the backend directly from the browser instead, build with
 | `NEXT_PUBLIC_API_BASE_URL` | build time | *(empty)* | Optional direct backend URL for browser requests |
 | `PORT` / `HOSTNAME` | runtime | `3000` / `0.0.0.0` | Standalone server bind address (Docker) |
 
+## Features
+
+- **ค้นหาที่นั่ง (`/`)** — exam schedule by student ID and round, seat map
+  previews, hide finished exams, search history, share link, next-exam
+  banner with countdown, calendar subscription (webcal / .ics). Press `/` to
+  jump to the search box.
+- **สำรวจห้องสอบ (`/explorer`)** — cascading round/date/time/room filters,
+  zoomable seat map colored by subject, per-seat details, student search,
+  shareable URLs.
+- **ห้องสอบ (`/room`)** — campus map and room photos/layouts. Titles and
+  coordinates come from the backend's `metadata.json` when set, with a
+  built-in fallback list.
+- **สถิติ (`/stats`)** — per-round and global analytics.
+- **ผู้ดูแลระบบ (`/admin`)** — sign in with the backend's `ADMIN_TOKEN`
+  (kept only in the tab's session storage) to import `.xlsx`/`.pdf`/`.json`
+  files, rename or delete rounds and out-of-schedule datasets, reload data,
+  and take or download backups. Changes are live immediately. The page is
+  not linked from the navigation and is `noindex`.
+- Installable as an app (web manifest), dark mode, mobile layout.
+
 ## Project structure
 
 ```
 src/
   app/            routes: layout (theme + shell), template (page transition),
                   / (student search), /explorer, /room, /stats, not-found
-  views/          page-level client components (StudentSearch, RoomExplorer, RoomInfo, Stats)
+  views/          page-level client components (StudentSearch, RoomExplorer, RoomInfo, Stats, admin/)
+                  explorer/ holds the explorer's filter hook and panels
   components/     layout, ui primitives, exam card, seat map, Leaflet room map, calendar
   hooks/          SSR-safe browser state (localStorage, theme, media query, URL hash, query string)
   lib/            API URL helpers, room locations, constants, utilities
@@ -67,6 +88,8 @@ Notes on the migration from the Vite SPA:
   `Permissions-Policy` and a CSP with `frame-ancestors 'none'`, `object-src 'none'`.
 - Links built from API data go through `safeExternalUrl` (http(s) or
   site-relative only), and API text is always rendered as text.
+- The admin token lives in `sessionStorage` only and is sent as a bearer
+  header, which browsers never attach on their own (no CSRF).
 - `src/__tests__/security.test.tsx` covers the above; CI also runs
   `npm audit` on production dependencies.
 
@@ -90,6 +113,37 @@ Start the backend from its own repository (`go run ./cmd/server`, port 8080).
 | `npm run typecheck` | Route type generation + `tsc` |
 | `npm test` | Vitest (add `-- --run` for a single run) |
 
+### Deployment
+
+Every push to `main` publishes `ghcr.io/openkku/cp-examseat-frontend:latest`
+(plus `:sha-…`, and `:X.Y.Z` for `vX.Y.Z` tags); the backend publishes its
+image the same way. Update a server with `docker compose pull && docker compose up -d`.
+
+Put a reverse proxy (Caddy, nginx, Cloudflare…) in front of this app that
+sets `X-Forwarded-For` to the real client address. The backend rate-limits
+per client IP using that header, and Next.js forwards it unchanged, so
+without such a proxy clients could send their own header and dodge the
+limit. For example:
+
+```
+# Caddyfile — Caddy replaces client-supplied X-Forwarded-For by default
+exam.example.com {
+    reverse_proxy 127.0.0.1:3000
+}
+```
+
+```nginx
+# nginx — overwrite, don't append, the client's header
+location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header Host $host;
+}
+```
+
+Admin uploads pass through the proxy; `experimental.proxyClientMaxBodySize`
+in `next.config.ts` (25 MB) must stay above the backend's `MAX_UPLOAD_MB`.
+
 ### Docker
 
 ```bash
@@ -103,8 +157,10 @@ backend from a sibling checkout (`../cp-examseat-backend`, override with
 
 ```bash
 git clone https://github.com/openkku/cp-examseat-backend ../cp-examseat-backend
-docker compose up -d --build   # http://localhost:3000
+ADMIN_TOKEN=$(openssl rand -hex 32) docker compose up -d --build   # http://localhost:3000
 ```
+
+Backups land in `../cp-examseat-backend/backups` (override with `BACKUP_HOST_DIR`).
 
 ## License
 

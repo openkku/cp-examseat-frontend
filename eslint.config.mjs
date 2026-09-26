@@ -6,15 +6,13 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   {
-    // The views were ported from the previous Vite SPA with their behavior
-    // unchanged. These React Compiler rules flag patterns that code relies on
-    // (cascading filter effects, handlers declared after the effects using
-    // them), so they are reported as warnings until that code is refactored.
     rules: {
-      "react-hooks/set-state-in-effect": "warn",
-      "react-hooks/immutability": "warn",
       // Thai UI copy quotes terms with plain double quotes.
       "react/no-unescaped-entities": "off",
+      // Room images come from the backend or an arbitrary CDN (IMAGE_BASE_URL)
+      // and are shown in a zoomable viewer; next/image would need every host
+      // allow-listed at build time.
+      "@next/next/no-img-element": "off",
     },
   },
   // Override default ignores of eslint-config-next.

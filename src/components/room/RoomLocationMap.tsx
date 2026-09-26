@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { getRoomContent } from '@/lib/roomContent';
+import { getRoomContent, type RoomContent } from '@/lib/roomContent';
 
 // Auto fits bounds of the Map instance to match all active markers
 const MapBoundsFitter = ({ positions }: { positions: [number, number][] }) => {
@@ -21,13 +21,14 @@ const MapBoundsFitter = ({ positions }: { positions: [number, number][] }) => {
 };
 
 interface RoomLocationMapProps {
-  roomIds: string[];
+  /** Rooms keyed by ID, with any location details from the backend. */
+  rooms: Record<string, RoomContent>;
   onSelectRoom: (roomId: string) => void;
 }
 
 // Leaflet touches `window` when imported, so this component must be loaded
 // with next/dynamic and `ssr: false`.
-export default function RoomLocationMap({ roomIds, onSelectRoom }: RoomLocationMapProps) {
+export default function RoomLocationMap({ rooms, onSelectRoom }: RoomLocationMapProps) {
   return (
     <MapContainer center={[16.4466, 102.8285]} zoom={16} scrollWheelZoom={false} dragging={true} style={{ height: "100%", width: "100%", zIndex: 0 }}>
       <TileLayer
@@ -39,8 +40,8 @@ export default function RoomLocationMap({ roomIds, onSelectRoom }: RoomLocationM
         const groupedLocations: Record<string, { lat: number; lng: number; rooms: string[] }> = {};
         const allPositions: [number, number][] = [];
 
-        roomIds.forEach((roomId) => {
-          const content = getRoomContent(roomId);
+        Object.entries(rooms).forEach(([roomId, apiRoom]) => {
+          const content = getRoomContent(roomId, apiRoom);
           if (content.lat && content.lng) {
             const key = `${content.lat},${content.lng}`;
             if (!groupedLocations[key]) {

@@ -38,7 +38,15 @@ export {
   Tag,
   Layers,
   FileText,
-  GraduationCap
+  GraduationCap,
+  Share2,
+  Hourglass,
+  RefreshCw,
+  Upload,
+  LogOut,
+  Pencil,
+  Database,
+  KeyRound
 } from 'lucide-react';
 
 // Unified GitHub icon (since brand icons are deprecated in newer Lucide React versions)

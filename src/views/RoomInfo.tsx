@@ -22,6 +22,10 @@ const RoomLocationMap = dynamic(() => import('@/components/room/RoomLocationMap'
 });
 
 interface ApiImages {
+  title?: string;
+  description?: string;
+  lat?: number;
+  lng?: number;
   i_images?: string[];
   i_layout?: string;
   i_map?: string;
@@ -221,7 +225,7 @@ export const RoomInfo = () => {
           </div>
 
           <div className="w-full h-[320px] md:h-[380px] relative z-0">
-            <RoomLocationMap roomIds={Object.keys(apiRooms)} onSelectRoom={(roomId) => scrollToRoom(`room-${roomId.toLowerCase()}`)} />
+            <RoomLocationMap rooms={apiRooms} onSelectRoom={(roomId) => scrollToRoom(`room-${roomId.toLowerCase()}`)} />
           </div>
         </Card>
 
@@ -233,7 +237,7 @@ export const RoomInfo = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             {filteredRooms.map(([roomId, apiData]) => {
-              const content = getRoomContent(roomId);
+              const content = getRoomContent(roomId, apiData);
 
               return (
                 <Card

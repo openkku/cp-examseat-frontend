@@ -26,6 +26,15 @@ interface CalendarHelperProps {
 
 type Platform = 'ios' | 'android' | 'desktop';
 
+// The helper mounts only while open (see CalendarActions), so this runs on
+// every open, in the browser.
+function detectPlatform(): Platform {
+  const ua = typeof navigator === 'undefined' ? '' : navigator.userAgent || '';
+  if (/iPad|iPhone|iPod/.test(ua)) return 'ios';
+  if (/Android/.test(ua)) return 'android';
+  return 'desktop';
+}
+
 export const CalendarHelper: React.FC<CalendarHelperProps> = ({
   isOpen,
   onClose,
@@ -33,22 +42,8 @@ export const CalendarHelper: React.FC<CalendarHelperProps> = ({
   onSubscribe,
   onDownload
 }) => {
-  const [activePlatform, setActivePlatform] = useState<Platform>('ios');
+  const [activePlatform, setActivePlatform] = useState<Platform>(detectPlatform);
   const [copied, setCopied] = useState(false);
-
-  // Platform auto-detection
-  useEffect(() => {
-    if (isOpen) {
-      const ua = navigator.userAgent || '';
-      if (/iPad|iPhone|iPod/.test(ua)) {
-        setActivePlatform('ios');
-      } else if (/Android/.test(ua)) {
-        setActivePlatform('android');
-      } else {
-        setActivePlatform('desktop');
-      }
-    }
-  }, [isOpen]);
 
   // Close on Escape key press
   useEffect(() => {
