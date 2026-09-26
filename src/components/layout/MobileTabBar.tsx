@@ -1,0 +1,50 @@
+'use client';
+
+import React from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Search, School, MapPin, BarChart3 } from '@/components/icons';
+
+export const MobileTabBar: React.FC = () => {
+  const pathname = usePathname();
+
+  const navItems = [
+    { label: 'ค้นหา', path: '/', icon: <Search className="w-5 h-5" /> },
+    { label: 'ห้องสอบ', path: '/room', icon: <School className="w-5 h-5" /> },
+    { label: 'สำรวจ', path: '/explorer', icon: <MapPin className="w-5 h-5" /> },
+    { label: 'สถิติ', path: '/stats', icon: <BarChart3 className="w-5 h-5" /> },
+  ];
+
+  const isActive = (path: string) => {
+    if (path === '/') {
+      return pathname === '/';
+    }
+    return pathname.startsWith(path);
+  };
+
+  return (
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 h-[4.5rem] bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200/70 dark:border-slate-800/70 z-30 flex items-center justify-around px-3 pb-safe shadow-lg shadow-emerald-950/5 dark:shadow-none">
+      {navItems.map((item) => {
+        const active = isActive(item.path);
+        return (
+          <Link
+            key={item.path}
+            href={item.path}
+            className={`flex flex-col items-center justify-center flex-1 py-1 px-2 select-none transition-all duration-200 ${
+              active
+                ? 'text-faculty dark:text-blue-300 font-bold'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-350'
+            }`}
+          >
+            <div className={`p-1.5 rounded-xl transition-all duration-300 ${
+              active ? 'bg-faculty-light dark:bg-blue-950/60 shadow-sm shadow-blue-950/5 dark:shadow-none' : ''
+            }`}>
+              {item.icon}
+            </div>
+            <span className="text-[10px] tracking-tight mt-0.5">{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+};
