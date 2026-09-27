@@ -159,7 +159,8 @@ export const ImageViewer: React.FC<ProImageViewerProps> = ({
         maxScale={4}
         centerOnInit
         doubleClick={{ disabled: false, step: 0.7, mode: "reset" }}
-        wheel={{ step: 0.1 }} 
+        // Scale change per pixel of wheel delta (0.1 per mouse-wheel notch).
+        wheel={{ step: 0.001 }}
         panning={{ velocityDisabled: false }} 
       >
         {({ zoomIn, zoomOut, resetTransform }) => (
