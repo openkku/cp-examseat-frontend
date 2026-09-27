@@ -1,0 +1,3 @@
+# Runtime state when deploying from a checkout: never commit these.
+data/
+backups/

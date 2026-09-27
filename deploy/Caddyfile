@@ -1,0 +1,6 @@
+# Caddy gets and renews the certificate for $DOMAIN, and replaces any
+# X-Forwarded-For the client sends with the real client address, which the
+# backend rate-limits on.
+{$DOMAIN} {
+	reverse_proxy frontend:3000
+}

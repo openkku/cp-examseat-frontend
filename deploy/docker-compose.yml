@@ -1,0 +1,80 @@
+# Production stack: runs the images CI publishes to GHCR. Only this directory
+# is needed on the server (see README.md here).
+#
+#   cp .env.example .env    # then edit it
+#   docker compose pull && docker compose up -d
+services:
+  # HTTPS reverse proxy with automatic certificates. Enabled by
+  # COMPOSE_PROFILES=caddy in .env; leave it out when the host already runs
+  # a reverse proxy and point that at 127.0.0.1:3000 instead.
+  caddy:
+    image: caddy:2-alpine
+    profiles: [caddy]
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+      - 443:443/udp
+    environment:
+      - DOMAIN=${DOMAIN:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+    networks:
+      - cpkku-network
+
+  frontend:
+    image: ghcr.io/openkku/cp-examseat-frontend:${FRONTEND_TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:${FRONTEND_PORT:-3000}:3000
+    environment:
+      - BACKEND_URL=http://backend:8080
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - cpkku-network
+
+  backend:
+    image: ghcr.io/openkku/cp-examseat-backend:${BACKEND_TAG:-latest}
+    restart: unless-stopped
+    volumes:
+      - ${DATA_DIR:-./data}:/app/data:z
+      - ${BACKUP_HOST_DIR:-./backups}:/app/backups:z
+    environment:
+      - ADMIN_TOKEN=${ADMIN_TOKEN:-}
+      - BACKUP_DIR=/app/backups
+      - BACKUP_INTERVAL=${BACKUP_INTERVAL:-24h}
+      - BACKUP_KEEP=${BACKUP_KEEP:-7}
+      - RATE_LIMIT_RPS=${RATE_LIMIT_RPS:-10}
+      - RATE_LIMIT_BURST=${RATE_LIMIT_BURST:-40}
+      - IMAGE_BASE_URL=${IMAGE_BASE_URL:-}
+      # The frontend can reach the backend over this network's IPv6 subnet,
+      # which is not a private range. Trust it too, or every visitor would
+      # share the frontend's rate-limit bucket.
+      - TRUSTED_PROXIES=loopback,private,d000::/112
+    healthcheck:
+      test: [CMD, wget, -qO-, http://127.0.0.1:8080/healthz]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      start_interval: 1s
+    networks:
+      - cpkku-network
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  cpkku-network:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: d000::/112
+    driver_opts:
+      com.docker.network.bridge.name: cpkku-network

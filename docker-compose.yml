@@ -1,5 +1,6 @@
-# Full stack: this frontend plus the Go backend, built from a sibling checkout
-# of openkku/cp-examseat-backend (override with BACKEND_CONTEXT).
+# Full stack built from source: this frontend plus the Go backend, built from a
+# sibling checkout of openkku/cp-examseat-backend (override with BACKEND_CONTEXT).
+# To run the published images on a server, use deploy/ instead.
 services:
   frontend:
     build: ./
@@ -25,6 +26,10 @@ services:
       # Enables the /admin page; set a long random value (openssl rand -hex 32).
       - ADMIN_TOKEN=${ADMIN_TOKEN:-}
       - BACKUP_DIR=/app/backups
+      # The frontend can reach the backend over this network's IPv6 subnet,
+      # which is not a private range. Trust it too, or every visitor would
+      # share the frontend's rate-limit bucket.
+      - TRUSTED_PROXIES=loopback,private,d000::/112
       # - IMAGE_BASE_URL=
     networks:
       - cpkku-network

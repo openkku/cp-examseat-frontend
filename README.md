@@ -117,7 +117,9 @@ Start the backend from its own repository (`go run ./cmd/server`, port 8080).
 
 Every push to `main` publishes `ghcr.io/openkku/cp-examseat-frontend:latest`
 (plus `:sha-…`, and `:X.Y.Z` for `vX.Y.Z` tags); the backend publishes its
-image the same way. Update a server with `docker compose pull && docker compose up -d`.
+image the same way. [`deploy/`](deploy/README.md) runs both images behind
+Caddy with automatic HTTPS; its README covers first deployment, updates,
+rollbacks and restoring backups.
 
 Put a reverse proxy (Caddy, nginx, Cloudflare…) in front of this app that
 sets `X-Forwarded-For` to the real client address. The backend rate-limits
@@ -134,6 +136,7 @@ exam.example.com {
 
 ```nginx
 # nginx — overwrite, don't append, the client's header
+client_max_body_size 25m;   # admin uploads; nginx defaults to 1 MB
 location / {
     proxy_pass http://127.0.0.1:3000;
     proxy_set_header X-Forwarded-For $remote_addr;
