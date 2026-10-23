@@ -145,6 +145,10 @@ docker build -t cp-examseat-frontend .
 docker run -p 3000:3000 -e BACKEND_URL=http://host.docker.internal:8080 cp-examseat-frontend
 ```
 
+Local rebuilds keep npm's download cache and Next.js's `.next/cache` in build
+cache mounts, so `next build` only redoes what changed. They never end up in
+the image; `docker builder prune` (or `podman builder prune`) clears them.
+
 [`docker-compose.yml`](docker-compose.yml) runs the whole stack, building the
 backend from a sibling checkout (`../cp-examseat-backend`, override with
 `BACKEND_CONTEXT`) and mounting its `data/` directory (override with `DATA_DIR`):

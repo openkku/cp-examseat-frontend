@@ -6,7 +6,8 @@ FROM node:26-alpine AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+# Cache mounts speed up local rebuilds; they never end up in the image.
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 # ----------------------------
 # Stage 2: Build the Next.js app
@@ -23,7 +24,9 @@ ARG NEXT_PUBLIC_API_BASE_URL=
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL \
     NEXT_TELEMETRY_DISABLED=1
 
-RUN npm run build
+# Next.js keeps its compile cache in .next/cache; keeping it between builds
+# makes rebuilds incremental. The standalone output lives outside it.
+RUN --mount=type=cache,target=/app/.next/cache npm run build
 
 # ----------------------------
 # Stage 3: Final Production Image (standalone server)
