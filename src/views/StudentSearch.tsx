@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useSetSearchParams } from '@/hooks/useSetSearchParams';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { apiUrl } from '@/lib/api';
+import { errorMessage, fetchWithQueue, queueMessage } from '@/lib/examLookup';
 import type { ExamResult, RoomConfigMap } from '@/types';
 import { ExamCard } from '@/components/exam/ExamCard';
 import { ScrollToTopButton } from '@/components/ScrollToTopButton';
@@ -76,6 +77,10 @@ export const StudentSearch = () => {
   const [selectedRound, setSelectedRound] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Set while the backend is still fetching this student from the faculty system (HTTP 202).
+  const [queueInfo, setQueueInfo] = useState('');
+  // Bumped on every search so a queued retry loop stops when the user searches again.
+  const searchSeq = useRef(0);
 
   // Hide passed exams toggle (disabled by default), persisted in localStorage
   const [hidePassedStored, setHidePassedStored] = useLocalStorage('hide_passed_exams');
@@ -164,20 +169,29 @@ export const StudentSearch = () => {
   const performSearch = useCallback(async (id: string, roundId: string) => {
     if (id.length < 5 || !roundId) return;
 
+    const seq = ++searchSeq.current;
+    const isCancelled = () => seq !== searchSeq.current;
     setLoading(true);
     setError('');
+    setQueueInfo('');
     setResults(null);
     setBranch('');
 
     try {
-      const res = await fetch(apiUrl(`/api/exam?id=${encodeURIComponent(id)}&round=${encodeURIComponent(roundId)}`));
+      const res = await fetchWithQueue(
+        apiUrl(`/api/exam?id=${encodeURIComponent(id)}&round=${encodeURIComponent(roundId)}`),
+        { onQueued: (position) => setQueueInfo(queueMessage(position)), isCancelled },
+      );
+      if (!res) return;
+      setQueueInfo('');
       if (res.status === 404) {
         setResults([]);
         setBranch('');
         return;
       }
-      if (res.status === 429) throw new Error("มีการค้นหาถี่เกินไป กรุณารอสักครู่แล้วลองใหม่อีกครั้ง");
-      if (!res.ok) throw new Error("ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
+      if (res.status === 202) throw new Error("ระบบคณะตอบช้า กรุณาลองใหม่อีกครั้ง");
+      if (res.status === 429) throw new Error(await errorMessage(res, "มีการค้นหาถี่เกินไป กรุณารอสักครู่แล้วลองใหม่อีกครั้ง"));
+      if (!res.ok) throw new Error(await errorMessage(res, "ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง"));
 
       const rawData: ExamResult[] = await res.json();
       setResults(rawData);
@@ -195,9 +209,11 @@ export const StudentSearch = () => {
           .catch(() => console.warn("Could not load config"));
       }
     } catch (err: unknown) {
+      if (isCancelled()) return;
+      setQueueInfo('');
       setError(err instanceof Error ? err.message : "Error fetching data");
     } finally {
-      setLoading(false);
+      if (!isCancelled()) setLoading(false);
     }
   }, [saveToHistory]);
 
@@ -451,6 +467,7 @@ export const StudentSearch = () => {
 
           {results !== null && results.length > 0 && <NextExamBanner exams={results} />}
 
+          {loading && queueInfo && <div role="status" className="mb-3 rounded-xl bg-teal-50 dark:bg-teal-950/30 border border-teal-100 dark:border-teal-900/50 px-3 py-2.5 text-teal-700 dark:text-teal-300 text-center text-xs font-semibold">{queueInfo}</div>}
           {loading && <div className="space-y-4" aria-label="กำลังค้นหาที่นั่งสอบ"><div className="h-52 rounded-2xl shimmer" /><div className="h-52 rounded-2xl shimmer" /></div>}
 
           {processedResults?.map((exam, idx) => (
