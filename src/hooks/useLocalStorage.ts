@@ -53,8 +53,3 @@ function useWebStorage(kind: Kind, key: string): [string | null, (value: string 
 export function useLocalStorage(key: string) {
   return useWebStorage('local', key);
 }
-
-/** Like useLocalStorage, but for sessionStorage (cleared when the tab closes). */
-export function useSessionStorage(key: string) {
-  return useWebStorage('session', key);
-}

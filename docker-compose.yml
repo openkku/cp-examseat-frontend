@@ -21,11 +21,7 @@ services:
     restart: unless-stopped
     volumes:
       - ${DATA_DIR:-../cp-examseat-backend/data}:/app/data:z
-      - ${BACKUP_HOST_DIR:-../cp-examseat-backend/backups}:/app/backups:z
     environment:
-      # Enables the /admin page; set a long random value (openssl rand -hex 32).
-      - ADMIN_TOKEN=${ADMIN_TOKEN:-}
-      - BACKUP_DIR=/app/backups
       # The frontend can reach the backend over this network's IPv6 subnet,
       # which is not a private range. Trust it too, or every visitor would
       # share the frontend's rate-limit bucket.

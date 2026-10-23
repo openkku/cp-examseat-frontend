@@ -9,7 +9,7 @@ every push to `main`. Nothing needs to be built on the server.
 
 ```
 Internet ─► caddy :80/:443 ─► frontend :3000 ─► backend :8080
-            (HTTPS, optional)  (Next.js)          (Go API) ─► ./data, ./backups
+            (HTTPS, optional)  (Next.js)          (Go API) ─► ./data
 ```
 
 | File | Purpose |
@@ -47,13 +47,13 @@ domain whose DNS points at the server and ports 80 and 443 open.
 
    ```bash
    cp .env.example .env
-   sed -i "s/^ADMIN_TOKEN=.*/ADMIN_TOKEN=$(openssl rand -hex 32)/" .env
    nano .env   # set DOMAIN
    ```
 
 4. **Add data** in `./data` (or set `DATA_DIR`): `exams.db` plus `room/`
    (`metadata.json`, `map/`, `image/`). An empty directory also works; the
-   backend creates the database and you import schedules from `/admin`.
+   backend creates the database and you import schedules with the operator
+   app (see [Managing data](#managing-data)).
 
    Moving from the monorepo ([openkku/cp-examseat](https://github.com/openkku/cp-examseat)):
    run `docker compose down` in its directory first (it uses the same
@@ -68,8 +68,6 @@ domain whose DNS points at the server and ports 80 and 443 open.
    docker compose ps                       # backend should be "healthy"
    curl -s https://$DOMAIN/api/rounds      # replace $DOMAIN
    ```
-
-   The admin page is at `https://<domain>/admin`; sign in with `ADMIN_TOKEN`.
 
 ## Updating and rolling back
 
@@ -88,13 +86,11 @@ To pick up a newer `docker-compose.yml`, run `git pull` here first.
 Delete the `COMPOSE_PROFILES=caddy` line from `.env`. The frontend listens on
 `127.0.0.1:3000` (`FRONTEND_PORT`); point the proxy there. The proxy must
 **set** `X-Forwarded-For` to the client address, because the backend
-rate-limits per client and Next.js passes that header through unchanged. It
-must also accept admin uploads up to 25 MB.
+rate-limits per client and Next.js passes that header through unchanged.
 
 ```nginx
 server {
     server_name exam.example.com;
-    client_max_body_size 25m;
 
     location / {
         proxy_pass http://127.0.0.1:3000;
@@ -112,19 +108,41 @@ exam.example.com {
 }
 ```
 
+## Managing data
+
+The site is read-only; there is no admin page. Import seating files, rename
+or delete rounds and edit rooms with the backend's operator app, in a
+terminal on the server:
+
+```bash
+docker compose exec -it backend ./operator
+```
+
+Put files to import in `data/source/` first (e.g. `scp` them over). Every
+change is live within a few seconds; no restart or reload needed. For the
+drag-and-drop layout editor in a browser, use the operator service of
+[openkku/cp-examseat-deployment](https://github.com/openkku/cp-examseat-deployment#managing-data).
+
 ## Operations
 
 - **Logs:** `docker compose logs -f backend` (or `frontend`, `caddy`).
-- **Room files changed on disk:** use Reload on the admin page, or
-  `docker compose kill -s HUP backend`. No restart needed.
-- **Backups:** written to `./backups` every `BACKUP_INTERVAL` and before
-  every admin import or delete, keeping `BACKUP_KEEP` files. Copy them off
-  the server regularly.
+- **Room files changed on disk by hand:** `touch data/.reload` (or
+  `docker compose kill -s HUP backend`). No restart needed.
+- **Backups:** the backend doesn't take any. Back up `data/exams.db` from
+  the host instead, e.g. snapshot the disk, or run a daily cron job (safe
+  while the backend runs, needs `sqlite3` on the host):
+
+  ```bash
+  sqlite3 data/exams.db ".backup 'backups/exams-$(date +%F).db'"
+  find backups -name 'exams-*.db' -mtime +7 -delete   # keep a week
+  ```
+
+  Copy the files off the server regularly.
 - **Restore a backup:**
 
   ```bash
   docker compose stop backend
-  cp backups/exams-YYYYMMDD-HHMMSS.mmm.db data/exams.db
+  cp backups/exams-YYYY-MM-DD.db data/exams.db
   rm -f data/exams.db-wal data/exams.db-shm   # stale WAL must not replay onto the restored file
   docker compose start backend
   ```

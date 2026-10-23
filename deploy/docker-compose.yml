@@ -44,12 +44,7 @@ services:
     restart: unless-stopped
     volumes:
       - ${DATA_DIR:-./data}:/app/data:z
-      - ${BACKUP_HOST_DIR:-./backups}:/app/backups:z
     environment:
-      - ADMIN_TOKEN=${ADMIN_TOKEN:-}
-      - BACKUP_DIR=/app/backups
-      - BACKUP_INTERVAL=${BACKUP_INTERVAL:-24h}
-      - BACKUP_KEEP=${BACKUP_KEEP:-7}
       - RATE_LIMIT_RPS=${RATE_LIMIT_RPS:-10}
       - RATE_LIMIT_BURST=${RATE_LIMIT_BURST:-40}
       - IMAGE_BASE_URL=${IMAGE_BASE_URL:-}

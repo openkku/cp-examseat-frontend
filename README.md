@@ -48,11 +48,6 @@ To call the backend directly from the browser instead, build with
   coordinates come from the backend's `metadata.json` when set, with a
   built-in fallback list.
 - **สถิติ (`/stats`)** — per-round and global analytics.
-- **ผู้ดูแลระบบ (`/admin`)** — sign in with the backend's `ADMIN_TOKEN`
-  (kept only in the tab's session storage) to import `.xlsx`/`.pdf`/`.json`
-  files, rename or delete rounds and out-of-schedule datasets, reload data,
-  and take or download backups. Changes are live immediately. The page is
-  not linked from the navigation and is `noindex`.
 - Installable as an app (web manifest), dark mode, mobile layout.
 
 ## Project structure
@@ -61,7 +56,7 @@ To call the backend directly from the browser instead, build with
 src/
   app/            routes: layout (theme + shell), template (page transition),
                   / (student search), /explorer, /room, /stats, not-found
-  views/          page-level client components (StudentSearch, RoomExplorer, RoomInfo, Stats, admin/)
+  views/          page-level client components (StudentSearch, RoomExplorer, RoomInfo, Stats)
                   explorer/ holds the explorer's filter hook and panels
   components/     layout, ui primitives, exam card, seat map, Leaflet room map, calendar
   hooks/          SSR-safe browser state (localStorage, theme, media query, URL hash, query string)
@@ -88,8 +83,8 @@ Notes on the migration from the Vite SPA:
   `Permissions-Policy` and a CSP with `frame-ancestors 'none'`, `object-src 'none'`.
 - Links built from API data go through `safeExternalUrl` (http(s) or
   site-relative only), and API text is always rendered as text.
-- The admin token lives in `sessionStorage` only and is sent as a bearer
-  header, which browsers never attach on their own (no CSRF).
+- The site is read-only: there is no admin page or token. Data is managed
+  on the server with the backend's operator app (`./operator`).
 - `src/__tests__/security.test.tsx` covers the above; CI also runs
   `npm audit` on production dependencies.
 
@@ -136,16 +131,12 @@ exam.example.com {
 
 ```nginx
 # nginx — overwrite, don't append, the client's header
-client_max_body_size 25m;   # admin uploads; nginx defaults to 1 MB
 location / {
     proxy_pass http://127.0.0.1:3000;
     proxy_set_header X-Forwarded-For $remote_addr;
     proxy_set_header Host $host;
 }
 ```
-
-Admin uploads pass through the proxy; `experimental.proxyClientMaxBodySize`
-in `next.config.ts` (25 MB) must stay above the backend's `MAX_UPLOAD_MB`.
 
 ### Docker
 
@@ -160,10 +151,9 @@ backend from a sibling checkout (`../cp-examseat-backend`, override with
 
 ```bash
 git clone https://github.com/openkku/cp-examseat-backend ../cp-examseat-backend
-ADMIN_TOKEN=$(openssl rand -hex 32) docker compose up -d --build   # http://localhost:3000
+docker compose up -d --build                     # http://localhost:3000
+docker compose exec -it backend ./operator      # import rounds, edit rooms (terminal UI)
 ```
-
-Backups land in `../cp-examseat-backend/backups` (override with `BACKUP_HOST_DIR`).
 
 ## License
 
