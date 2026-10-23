@@ -1,5 +1,9 @@
 # Deploying with Docker
 
+> To serve rounds looked up on demand from checkex (KKU VPN + scrapler), use
+> [openkku/cp-examseat-deployment](https://github.com/openkku/cp-examseat-deployment)
+> instead. It is a superset of this stack.
+
 This directory runs the whole site from the images CI publishes to GHCR on
 every push to `main`. Nothing needs to be built on the server.
 

@@ -19,6 +19,9 @@ const nextConfig: NextConfig = {
     // must not be truncated. Keep this above the backend's MAX_UPLOAD_MB
     // (default 20) so the backend's 413 is what limits uploads.
     proxyClientMaxBodySize: '25mb',
+    // A first lookup of a checkex round can wait in the backend for up to 30s
+    // (scrapler's queue); outlast it so the proxy does not cut it off.
+    proxyTimeout: 45_000,
   },
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
