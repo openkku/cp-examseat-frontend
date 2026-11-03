@@ -1,18 +1,18 @@
 # ----------------------------
 # Stage 1: Install dependencies
 # ----------------------------
-FROM node:26-alpine AS deps
+FROM oven/bun:1.4-alpine AS deps
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY package.json bun.lock ./
 # Cache mounts speed up local rebuilds; they never end up in the image.
-RUN --mount=type=cache,target=/root/.npm npm ci
+RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile
 
 # ----------------------------
 # Stage 2: Build the Next.js app
 # ----------------------------
-FROM node:26-alpine AS builder
+FROM oven/bun:1.4-alpine AS builder
 
 WORKDIR /app
 
@@ -26,12 +26,12 @@ ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL \
 
 # Next.js keeps its compile cache in .next/cache; keeping it between builds
 # makes rebuilds incremental. The standalone output lives outside it.
-RUN --mount=type=cache,target=/app/.next/cache npm run build
+RUN --mount=type=cache,target=/app/.next/cache bun --bun run build
 
 # ----------------------------
 # Stage 3: Final Production Image (standalone server)
 # ----------------------------
-FROM node:26-alpine AS runner
+FROM oven/bun:1.4-alpine AS runner
 
 WORKDIR /app
 
@@ -41,13 +41,12 @@ ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     BACKEND_URL=http://backend:8080
 
-RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
+COPY --from=builder --chown=bun:bun /app/.next/standalone ./
+COPY --from=builder --chown=bun:bun /app/.next/static ./.next/static
 
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
+# The image ships an unprivileged "bun" user.
+USER bun
 
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+CMD ["bun", "server.js"]

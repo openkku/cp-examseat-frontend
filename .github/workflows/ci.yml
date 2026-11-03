@@ -13,44 +13,44 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v7
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: 24
-          cache: 'npm'
+          bun-version: '1.4'
 
       - name: Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Lint
-        run: npm run lint
+        run: bun run lint
 
       - name: Type Check
-        run: npm run typecheck
+        run: bun run typecheck
 
       - name: Run Tests
-        run: npm run test -- --run
+        run: bun run test --run
 
+      # Built on the Bun runtime, as in the Docker image.
       - name: Build
-        run: npm run build
+        run: bun --bun run build
         env:
           NEXT_TELEMETRY_DISABLED: 1
 
   security:
-    name: Security (npm audit)
+    name: Security (bun audit)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: 24
+          bun-version: '1.4'
 
       # Production dependencies must be free of known high/critical advisories.
       - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=high
+        run: bun audit --prod --audit-level=high
 
   docker:
     name: Docker Build
