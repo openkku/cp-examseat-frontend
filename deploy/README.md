@@ -147,6 +147,11 @@ drag-and-drop layout editor in a browser, use the operator service of
   docker compose start backend
   ```
 
+- **Memory:** the frontend container is capped at 192 MiB
+  (`FRONTEND_MEM_LIMIT`). Without a cap, the runtime keeps memory it no
+  longer needs, which shows up as high usage in `docker stats` but is not a
+  leak. Check usage with `docker stats`. Don't set the cap below 128m:
+  96 MiB ran out of memory under heavy load.
 - **Rate limiting:** 10 requests/s with bursts of 40 per client IP. If many
   students reach the site through one address (campus NAT), raise
   `RATE_LIMIT_RPS` and `RATE_LIMIT_BURST` in `.env`.
