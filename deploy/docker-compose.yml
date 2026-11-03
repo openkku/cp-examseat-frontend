@@ -33,6 +33,9 @@ services:
       - 127.0.0.1:${FRONTEND_PORT:-3000}:3000
     environment:
       - BACKEND_URL=http://backend:8080
+    # The runtime keeps memory it no longer needs while it has room, so cap
+    # it: about 90 MiB was enough under ~700 req/s, and 96 MiB ran out.
+    mem_limit: ${FRONTEND_MEM_LIMIT:-192m}
     depends_on:
       backend:
         condition: service_healthy

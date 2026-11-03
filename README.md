@@ -11,7 +11,7 @@ Vite + React Router to **Next.js (App Router)**. Data comes from the Go API in
 The monorepo itself is unchanged.
 
 **Stack:** Next.js 16 · React 19 · TypeScript · Tailwind CSS v4 · Leaflet ·
-Vitest + Testing Library. The visual design is documented in [design.md](design.md).
+Vitest + Testing Library, on [Bun](https://bun.sh) (package manager and server runtime). The visual design is documented in [design.md](design.md).
 
 ## How it talks to the backend
 
@@ -86,14 +86,14 @@ Notes on the migration from the Vite SPA:
 - The site is read-only: there is no admin page or token. Data is managed
   on the server with the backend's operator app (`./operator`).
 - `src/__tests__/security.test.tsx` covers the above; CI also runs
-  `npm audit` on production dependencies.
+  `bun audit` on production dependencies.
 
 ## Getting started
 
 ```bash
-npm ci
+bun install
 cp .env.example .env.local   # point BACKEND_URL at a running backend
-npm run dev                  # http://localhost:3000
+bun run dev                  # http://localhost:3000
 ```
 
 Start the backend from its own repository (`go run ./cmd/server`, port 8080).
@@ -102,11 +102,14 @@ Start the backend from its own repository (`go run ./cmd/server`, port 8080).
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Development server |
-| `npm run build` / `npm start` | Production build / server |
-| `npm run lint` | ESLint (Next.js config) |
-| `npm run typecheck` | Route type generation + `tsc` |
-| `npm test` | Vitest (add `-- --run` for a single run) |
+| `bun run dev` | Development server |
+| `bun --bun run build` / `bun run start` | Production build / server, on the Bun runtime |
+| `bun run lint` | ESLint (Next.js config) |
+| `bun run typecheck` | Route type generation + `tsc` |
+| `bun run test` | Vitest (add `--run` for a single run) |
+
+Use `bun run test`, not `bun test`: the latter starts Bun's own test runner
+instead of Vitest. Dependencies are locked in `bun.lock`.
 
 ### Deployment
 
@@ -145,7 +148,7 @@ docker build -t cp-examseat-frontend .
 docker run -p 3000:3000 -e BACKEND_URL=http://host.docker.internal:8080 cp-examseat-frontend
 ```
 
-Local rebuilds keep npm's download cache and Next.js's `.next/cache` in build
+Local rebuilds keep Bun's package cache and Next.js's `.next/cache` in build
 cache mounts, so `next build` only redoes what changed. They never end up in
 the image; `docker builder prune` (or `podman builder prune`) clears them.
 
